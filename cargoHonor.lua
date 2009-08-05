@@ -3,6 +3,8 @@ local hideMarks = false			--[[	true: hides Marks of Honor tooltip information		]
 local hideWinLoss = false		--[[	true: hides Win/Loss statistics on tooltip			]]
 local hideWintergrasp = false	--[[	true: hides the wait time for Wintergrasp			]]
 
+local useSI = true				--[[	true: SI-units, e.g. 3.7k							]]
+
 local info = {
 	{
 		name = "Alterac Valley",
@@ -25,7 +27,10 @@ local info = {
 	},{
 		name = "Isle of Conquest",
 		abbr = "IoC",
-	}{
+		achTotal = 4096,
+		achWon = 4097,
+		itemID = 47395,
+	},{
 		name = "Strand of the Ancients",
 		abbr = "SotA",
 		achTotal = 1549,
@@ -40,7 +45,7 @@ local info = {
 	},
 	{
 		name = "Wintergrasp",
-		abbr = "WG",
+		abbr = "Wintergrasp",
 		itemID = 43589,
 	},
 }
@@ -57,9 +62,24 @@ local holidays = {
 	"Alterac",
 	"Warsong",
 	"SotA",
+	"IoC",
 	"Arathi",
 	"EotS",
 }
+
+local function siUnits(value)
+	if(not useSI) then
+		return value
+	elseif(not value or value == 0) then
+		return 0
+	elseif(value >= 10^3) then
+		return ("%.1fk"):format(value / 10^3)
+	elseif(value >= 10^6) then
+		return ("%.1fm"):format(value / 10^6)
+	else
+		return value
+	end
+end
 
 -- Initializing the object and frame
 local playerFaction = UnitFactionGroup("player")
@@ -94,12 +114,14 @@ local function ColorGradient(perc, r1, g1, b1, r2, g2, b2, r3, g3, b3)
 end
 
 -- Get percent, win total info by battleground id
-local function GetWinTotal(bg)
+local function GetWinTotal(i)
 	local total, won
-	if(not id) then
+	if(not i) then
 		total, won = GetStatistic(839), GetStatistic(840)
+	elseif(not info[i].achTotal or not info[i].achWon) then
+		return 0, 0
 	else
-		total, won = GetStatistic(info[name].achTotal), GetStatistic(info[name].achWon)
+		total, won = GetStatistic(info[i].achTotal), GetStatistic(info[i].achWon)
 	end
 	if(total == "--") then total = 0 else total = tonumber(total) or 0 end
 	if(won == "--") then won = 0 else won = tonumber(won) end
@@ -114,28 +136,31 @@ function frame:HONOR_CURRENCY_UPDATE()
 	local displ = cargoHonor.displ
 	local value
 
-	local session = select(2, GetPVPSessionStats())
+	local _, session = GetPVPSessionStats()
+	local total = siUnits(GetHonorCurrency())
+	local arena = siUnits(GetArenaCurrency())
+	local bg = siUnits(session - startHonor or 0)
+	session = siUnits(session)
 
 	if(displ == 5) then
-		value = ""
 		if(isBG) then
-			value = value..(session - startHonor or 0).. " | "
-		end
-		value = value..session.." | "..GetHonorCurrency()
-	elseif(displ == 4) then
-		value =  GetArenaCurrency()
-	elseif(displ == 3) then
-		if(startHonor) then
-			value = session - startHonor or 0
+			value = bg.. " | "
+		elseif(session > 0) then
+			value = session.." | "
 		else
-			value = 0
+			value = ""
 		end
+		value = value..total
+	elseif(displ == 4) then
+		value =  arena
+	elseif(displ == 3) then
+		value = bg
 	elseif(displ == 2) then
 		value = session
 	else
-		value = GetHonorCurrency()
+		value = total
 	end
-	databroker.value = value
+	dataobj.value = value
 	dataobj.text = value.." "..dataobj.suffix
 end
 
@@ -180,7 +205,10 @@ function dataobj.OnTooltipShow(tooltip)
 	end
 
 	-- Arena points
-	tooltip:AddDoubleLine("Arena points:", GetArenaCurrency(), 1,1,1, 0,1,0)
+	local arena = GetArenaCurrency()
+	if(arena > 0) then
+		tooltip:AddDoubleLine("Arena points:", arena, 1,1,1, 0,1,0)
+	end
 
 	-- Next holiday
 	if(not isHoliday) then
@@ -194,30 +222,31 @@ function dataobj.OnTooltipShow(tooltip)
 		for i, bg in ipairs(info) do
 			local marks = GetItemCount(bg.itemID, true)
 			if(marks > 0) then
-				tooltip:AddDoubleLine(bg.name, marks, 1,1,1, ColorGradient(marks/100, 1,0,0, 1,1,0, 0,1,0))
+				tooltip:AddDoubleLine(bg.abbr, marks, 1,1,1, ColorGradient(marks/100, 1,0,0, 1,1,0, 0,1,0))
 			end
 		end
 	end
 
 	-- Win/Loss Ratio
-	if(not hideWinLoss and percent) then
+	if(not hideWinLoss) then
 		tooltip:AddLine(" ")
 		tooltip:AddLine("Win/Loss Ratio")
 		for i, bg in ipairs(info) do
 			local win, total = GetWinTotal(i)
 			if(total > 0) then
 				tooltip:AddDoubleLine(
-					("%dx %s:"):format(total, bg.name),
+					("%dx %s:"):format(total, bg.abbr),
 					("%.0f|cffffffff%%|r"):format(win/total*100),
 					1,1,1, ColorGradient(win/total, 1,0,0, 1,1,0, 0,1,0)
 				)
 			end
 		end
 	end
-
-	if(not hideWintergrasp) then
-		local wgTime = SecondsToTimeAbbrev(GetWintergraspWaitTime())
-		tooltip:AddLine("Wintergrasp start:", wgTime, 1,1,1, 0,1,0)
+	local wgTime = GetWintergraspWaitTime()
+	if(not hideWintergrasp and wgTime) then
+		wgTime = SecondsToTimeAbbrev(wgTime)
+		tooltip:AddLine(" ")
+		tooltip:AddDoubleLine("Wintergrasp start:", wgTime, 1,1,1, 0,1,0)
 	end
 	tooltip:AddLine(" ")
 	tooltip:AddLine("Click to toggle display")
@@ -232,7 +261,7 @@ function dataobj.OnClick(self, button)
 		local displ = cargoHonor.displ
 		if(displ == 4) then
 			dataobj.icon = [[Interface\PVPFrame\PVP-ArenaPoints-Icon]]
-		elseif(displ == 1 or displ == 5) then
+		elseif(displ == 5) then
 			dataobj.icon = "Interface\\AddOns\\cargoHonor\\"..playerFaction.."Icon"
 		end
 		dataobj.suffix = suffixes[displ]
