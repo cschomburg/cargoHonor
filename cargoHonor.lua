@@ -140,13 +140,12 @@ function frame:HONOR_CURRENCY_UPDATE()
 	local total = siUnits(GetHonorCurrency())
 	local arena = siUnits(GetArenaCurrency())
 	local bg = siUnits(session - startHonor or 0)
-	session = siUnits(session)
 
 	if(displ == 5) then
 		if(isBG) then
-			value = bg.. " | "
+			value = bg.. " | "..siUnits(session).." | "
 		elseif(session > 0) then
-			value = session.." | "
+			value = siUnits(session).." | "
 		else
 			value = ""
 		end
@@ -156,7 +155,7 @@ function frame:HONOR_CURRENCY_UPDATE()
 	elseif(displ == 3) then
 		value = bg
 	elseif(displ == 2) then
-		value = session
+		value = siUnits(session)
 	else
 		value = total
 	end
@@ -244,8 +243,11 @@ function dataobj.OnTooltipShow(tooltip)
 	end
 	local wgTime = GetWintergraspWaitTime()
 	if(not hideWintergrasp and wgTime) then
-		wgTime = SecondsToTimeAbbrev(wgTime)
 		tooltip:AddLine(" ")
+		local battleSec = mod(wgTime, 60)
+		local battleMin = mod(floor(wgTime / 60), 60)
+		local battleHour = floor(wgTime / 3600)
+		wgTime = ("%01d:%02d:%02d"):format(battleHour, battleMin, battleSec)
 		tooltip:AddDoubleLine("Wintergrasp start:", wgTime, 1,1,1, 0,1,0)
 	end
 	tooltip:AddLine(" ")
