@@ -1,7 +1,7 @@
 ## Interface: 30200
 ## Title: cargoHonor
 ## Author: Cargor
-## Version: 2.2
+## Version: 2.3
 ## X-eMail: xconstruct@gmail.com
 ## Notes: brokers honor stats
 ## SavedVariables: cargoHonor
