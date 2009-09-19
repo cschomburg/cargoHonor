@@ -1,9 +1,9 @@
 -- Short configuration
-local hideMarks = false			--[[	true: hides Marks of Honor tooltip information		]]
-local hideWinLoss = false		--[[	true: hides Win/Loss statistics on tooltip			]]
-local hideWintergrasp = false	--[[	true: hides the wait time for Wintergrasp			]]
+local hideWinLoss = false			--[[	true: hides Win/Loss statistics on tooltip		]]
+local hideWintergrasp = false		--[[	true: hides the wait time for Wintergrasp		]]
+local hideWintergraspMarks = false	--[[	true: hides Wintergrasp marks and shards		]]
 
-local useSI = true				--[[	true: SI-units, e.g. 3.7k instead of 3750			]]
+local useSI = true					--[[	true: SI-units, e.g. 3.7k instead of 3750			]]
 -- Configuration end
 
 local LPVP = LibStub("LibCargPVP")
@@ -150,7 +150,7 @@ function dataobj.OnTooltipShow(tooltip)
 		local _, abbr = LPVP.GetBattlegroundName(i)
 
 		local left = ""
-		if(total > 0) then
+		if(not hideWinLoss and total > 0) then
 			local r,g,b = ColorGradient(won/total, 1,0,0, 1,1,0, 0,1,0)
 			left = ("|cff%2x%2x%2x%.0f%%|r "):format(r*255,g*255,b*255, won/total*100)
 		end
@@ -158,13 +158,24 @@ function dataobj.OnTooltipShow(tooltip)
 	end
 
 	local wgTime = GetWintergraspWaitTime()
-	if(not hideWintergrasp and wgTime) then
-		tooltip:AddLine(" ")
-		local battleSec = mod(wgTime, 60)
-		local battleMin = mod(floor(wgTime / 60), 60)
-		local battleHour = floor(wgTime / 3600)
-		wgTime = ("%01d:%02d:%02d"):format(battleHour, battleMin, battleSec)
-		tooltip:AddDoubleLine("Wintergrasp start:", wgTime, 1,1,1, 0,1,0)
+	if(not hideWintergrasp) then
+		if(wgTime and wgTime > 0) then
+			tooltip:AddLine(" ")
+			local battleSec = mod(wgTime, 60)
+			local battleMin = mod(floor(wgTime / 60), 60)
+			local battleHour = floor(wgTime / 3600)
+			wgTime = ("%01d:%02d:%02d"):format(battleHour, battleMin, battleSec)
+			tooltip:AddDoubleLine("Wintergrasp start:", wgTime, 1,1,1, 0,1,0)
+		else
+			tooltip:AddDoubleLine("Wintergrasp start:", "In Progress", 1,1,1, 0,1,0)
+		end
+	end
+	if(not hideWintergraspMarks) then
+		local markString = ("%d %s %d %s"):format(GetItemCount(43589),
+			texturizeIcon(43589),
+			GetItemCount(43228),
+			texturizeIcon(43228))
+		tooltip:AddDoubleLine("Wintergrasp Marks:", markString, 1,1,1, 1,1,1)
 	end
 	tooltip:AddLine(" ")
 	tooltip:AddLine("Click to toggle display")
