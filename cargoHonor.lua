@@ -1,12 +1,7 @@
 -- Short configuration
-local hideWinLoss = false			--[[	true: hides Win/Loss statistics on tooltip		]]
-local hideWintergrasp = false		--[[	true: hides the wait time for Wintergrasp		]]
-local hideWintergraspMarks = false	--[[	true: hides Wintergrasp marks and shards		]]
-
 local useSI = true					--[[	true: SI-units, e.g. 3.7k instead of 3750			]]
 -- Configuration end
 
-local LPVP = LibStub("LibCargPVP")
 local suffixes = {
 	"total",
 	"today",
@@ -34,7 +29,7 @@ local function texturizeIcon(arg1)
 end
 
 -- Initializing the object and frame
-local honorIcon = "Interface\\AddOns\\cargoHonor\\"..UnitFactionGroup("player").."Icon"
+local honorIcon = "Interface\\PVPFrame\\PVP-Currency-"..UnitFactionGroup("player")
 local arenaIcon = [[Interface\PVPFrame\PVP-ArenaPoints-Icon]]
 
 local OnEvent = function(self, event, ...) self[event](self, event, ...) end
@@ -46,15 +41,6 @@ local dataobj = LibStub:GetLibrary("LibDataBroker-1.1"):NewDataObject("cargoHono
 	suffix = " total",
 })
 local frame = CreateFrame"Frame"
-
--- Color function for Marks of Honor
-local function ColorGradient(perc, r1, g1, b1, r2, g2, b2, r3, g3, b3)
-	if perc >= 1 then return r3, g3, b3 elseif perc <= 0 then return r1, g1, b1 end
-
-	local segment, relperc = math.modf(perc*2)
-	if segment == 1 then r1, g1, b1, r2, g2, b2 = r2, g2, b2, r3, g3, b3 end
-	return r1 + (r2-r1)*relperc, g1 + (g2-g1)*relperc, b1 + (b2-b1)*relperc
-end
 
 -- [[    Update the display !    ]] --
 local session, total, startTime
@@ -115,8 +101,6 @@ frame:RegisterEvent"PLAYER_ENTERING_WORLD"
 function dataobj.OnTooltipShow(tooltip)
 
 	-- Honor Stats
-	local holidayID, isHoliday = LPVP.GetBattlegroundHoliday()
-	local _, holidayAbbr = LPVP.GetBattlegroundName(holidayID)
 	session = select(2, GetPVPSessionStats())
 	total = GetHonorCurrency()
 	local perHour
@@ -137,46 +121,6 @@ function dataobj.OnTooltipShow(tooltip)
 		tooltip:AddDoubleLine("Arena points:", arena.." "..texturizeIcon(arenaIcon), 1,1,1, 0,1,0)
 	end
 
-	-- Next holiday
-	if(not isHoliday) then
-		tooltip:AddDoubleLine("Next holiday:", holidayAbbr, 1,1,1, 1,1,1)
-	end
-
-	tooltip:AddLine(" ")
-	local dailyID = LPVP.GetBattlegroundDaily()
-	for i=1, GetNumBattlegroundTypes() do
-		local marks, itemID = LPVP.GetBattlegroundMarkCount(i)
-		local won, total = LPVP.GetBattlegroundWinTotal(i)
-		local _, abbr = LPVP.GetBattlegroundName(i)
-
-		local left = ""
-		if(not hideWinLoss and total > 0) then
-			local r,g,b = ColorGradient(won/total, 1,0,0, 1,1,0, 0,1,0)
-			left = ("|cff%2x%2x%2x%.0f%%|r "):format(r*255,g*255,b*255, won/total*100)
-		end
-		tooltip:AddDoubleLine(left..abbr..(i == dailyID and " |cff8899ff[D]|r" or ""), marks.." "..texturizeIcon(itemID), 1,1,1, 1,1,1)
-	end
-
-	local wgTime = GetWintergraspWaitTime()
-	if(not hideWintergrasp) then
-		if(wgTime and wgTime > 0) then
-			tooltip:AddLine(" ")
-			local battleSec = mod(wgTime, 60)
-			local battleMin = mod(floor(wgTime / 60), 60)
-			local battleHour = floor(wgTime / 3600)
-			wgTime = ("%01d:%02d:%02d"):format(battleHour, battleMin, battleSec)
-			tooltip:AddDoubleLine("Wintergrasp start:", wgTime, 1,1,1, 0,1,0)
-		else
-			tooltip:AddDoubleLine("Wintergrasp start:", "In Progress", 1,1,1, 0,1,0)
-		end
-	end
-	if(not hideWintergraspMarks) then
-		local markString = ("%d %s %d %s"):format(GetItemCount(43589),
-			texturizeIcon(43589),
-			GetItemCount(43228),
-			texturizeIcon(43228))
-		tooltip:AddDoubleLine("Wintergrasp Marks:", markString, 1,1,1, 1,1,1)
-	end
 	tooltip:AddLine(" ")
 	tooltip:AddLine("Click to toggle display")
 	tooltip:AddLine("Right-click to open PvP-Panel")
