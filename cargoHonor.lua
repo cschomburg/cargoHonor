@@ -6,7 +6,7 @@ local suffixes = {
 	"total",
 	"today",
 	"bg",
-	"arena",
+	"conquest",
 	"honor",
 }
 
@@ -29,8 +29,8 @@ local function texturizeIcon(arg1)
 end
 
 -- Initializing the object and frame
-local honorIcon = "Interface\\PVPFrame\\PVP-Currency-"..UnitFactionGroup("player")
-local arenaIcon = [[Interface\PVPFrame\PVP-ArenaPoints-Icon]]
+local honorIcon = "Interface\\PVPFrame\\PVPCurrency-Honor-"..UnitFactionGroup("player")
+local conquestIcon = "Interface\\PVPFrame\\PVPCurrency-Conquest-"..UnitFactionGroup("player")
 
 local OnEvent = function(self, event, ...) self[event](self, event, ...) end
 local dataobj = LibStub:GetLibrary("LibDataBroker-1.1"):NewDataObject("cargoHonor", {
@@ -50,9 +50,9 @@ function frame:HONOR_CURRENCY_UPDATE()
 	local value
 
 	local _, session = GetPVPSessionStats()
-	local total = siUnits(GetHonorCurrency())
-	local arena = siUnits(GetArenaCurrency())
-	local bg = siUnits(session - startHonor or 0)
+	local total = siUnits(select(2, GetCurrencyInfo(HONOR_CURRENCY)))
+	local conquest = siUnits(select(2, GetCurrencyInfo(CONQUEST_CURRENCY)))
+	local bg = siUnits(session - (startHonor or 0))
 
 	if(displ == 5) then
 		if(isBG) then
@@ -64,7 +64,7 @@ function frame:HONOR_CURRENCY_UPDATE()
 		end
 		value = value..total
 	elseif(displ == 4) then
-		value =  arena
+		value =  conquest
 	elseif(displ == 3) then
 		value = bg
 	elseif(displ == 2) then
@@ -102,7 +102,7 @@ function dataobj.OnTooltipShow(tooltip)
 
 	-- Honor Stats
 	session = select(2, GetPVPSessionStats())
-	total = GetHonorCurrency()
+	total = select(2, GetCurrencyInfo(HONOR_CURRENCY))
 	local perHour
 	if(startTime) then perHour = (session-startSession)/((time()-startTime)/3600) end
 	
@@ -116,9 +116,9 @@ function dataobj.OnTooltipShow(tooltip)
 	end
 
 	-- Arena points
-	local arena = GetArenaCurrency()
-	if(arena > 0) then
-		tooltip:AddDoubleLine("Arena points:", arena.." "..texturizeIcon(arenaIcon), 1,1,1, 0,1,0)
+	local _, conquest = GetCurrencyInfo(CONQUEST_CURRENCY)
+	if(conquest > 0) then
+		tooltip:AddDoubleLine("Conquest points:", conquest.." "..texturizeIcon(conquestIcon), 1,1,1, 0,1,0)
 	end
 
 	tooltip:AddLine(" ")
@@ -134,7 +134,7 @@ function dataobj.OnClick(self, button)
 		cargoHonor.displ = (cargoHonor.displ == 5 and 1) or (cargoHonor.displ and cargoHonor.displ+1) or 2
 		local displ = cargoHonor.displ
 		if(displ == 4) then
-			dataobj.icon = arenaIcon
+			dataobj.icon = conquestIcon
 		elseif(displ == 5) then
 			dataobj.icon = honorIcon
 		end

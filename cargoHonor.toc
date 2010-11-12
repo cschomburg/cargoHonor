@@ -1,10 +1,12 @@
-## Interface: 30300
+## Interface: 40000
 ## Title: cargoHonor
 ## Author: Cargor
-## Version: 2.4
-## X-eMail: xconstruct@gmail.com
+## Version: 2.4.1
+## X-eMail: me@xconstruct.net
 ## Notes: brokers honor stats
 ## SavedVariables: cargoHonor
+## LoadManagers: AddonLoader
+## X-LoadOn-Always: delayed
 
 LibStub.lua
 CallbackHandler-1.0.lua
